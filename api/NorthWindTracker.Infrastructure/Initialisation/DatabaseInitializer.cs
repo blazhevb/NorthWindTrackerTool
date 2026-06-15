@@ -23,9 +23,27 @@ public class DatabaseInitializer(IConfiguration configuration, ILogger<DatabaseI
 
         logger.LogInformation("Northwind database not found, creating and running setup script...");
         await CreateDatabaseAsync(connection);
-        await connection.ChangeDatabaseAsync("Northwind");
-        await RunScriptAsync(connection);
-        logger.LogInformation("Northwind database created successfully");
+
+        try
+        {
+            await connection.ChangeDatabaseAsync("Northwind");
+            await RunScriptAsync(connection);
+            logger.LogInformation("Northwind database created successfully");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to initialise Northwind database — dropping partial database");
+            await connection.ChangeDatabaseAsync("master");
+            await DropDatabaseAsync(connection);
+            throw;
+        }
+    }
+
+    private static async Task DropDatabaseAsync(SqlConnection connection)
+    {
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "DROP DATABASE IF EXISTS [Northwind]";
+        await cmd.ExecuteNonQueryAsync();
     }
 
     private static async Task CreateDatabaseAsync(SqlConnection connection)
