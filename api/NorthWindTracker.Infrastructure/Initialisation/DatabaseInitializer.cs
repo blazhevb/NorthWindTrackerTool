@@ -21,9 +21,18 @@ public class DatabaseInitializer(IConfiguration configuration, ILogger<DatabaseI
             return;
         }
 
-        logger.LogInformation("Northwind database not found, running setup script...");
+        logger.LogInformation("Northwind database not found, creating and running setup script...");
+        await CreateDatabaseAsync(connection);
+        await connection.ChangeDatabaseAsync("Northwind");
         await RunScriptAsync(connection);
         logger.LogInformation("Northwind database created successfully");
+    }
+
+    private static async Task CreateDatabaseAsync(SqlConnection connection)
+    {
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "CREATE DATABASE [Northwind]";
+        await cmd.ExecuteNonQueryAsync();
     }
 
     private static async Task<bool> DatabaseExistsAsync(SqlConnection connection)
@@ -41,7 +50,8 @@ public class DatabaseInitializer(IConfiguration configuration, ILogger<DatabaseI
 
         var script = await File.ReadAllTextAsync(scriptPath);
 
-        var batches = script.Split(["\r\nGO", "\nGO"], StringSplitOptions.RemoveEmptyEntries);
+        var batches = System.Text.RegularExpressions.Regex.Split(script, @"^\s*GO\s*$",
+            System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
         foreach (var batch in batches)
         {
