@@ -1,0 +1,48 @@
+<div class="container">
+  <button class="back-btn" (click)="goBack()">← Back to customers</button>
+
+  @if (loading()) {
+    <p class="status">Loading...</p>
+  } @else if (error()) {
+    <p class="error">{{ error() }}</p>
+  } @else if (customer()) {
+    <div class="customer-header">
+      <h1>{{ customer()!.companyName }}</h1>
+      <dl>
+        @if (customer()!.contactName) {
+          <dt>Contact</dt><dd>{{ customer()!.contactName }}</dd>
+        }
+        @if (customer()!.city || customer()!.country) {
+          <dt>Location</dt><dd>{{ location() }}</dd>
+        }
+      </dl>
+    </div>
+
+    <h2>Order History</h2>
+
+    @if (customer()!.orders.length === 0) {
+      <p class="status">No orders found.</p>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Order Date</th>
+            <th>Products</th>
+            <th>Total Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (order of customer()!.orders; track order.orderId) {
+            <tr>
+              <td>{{ order.orderId }}</td>
+              <td>{{ order.orderDate | date:'dd MMM yyyy' }}</td>
+              <td>{{ order.productCount }}</td>
+              <td>{{ order.totalValue | currency:'USD' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+</div>

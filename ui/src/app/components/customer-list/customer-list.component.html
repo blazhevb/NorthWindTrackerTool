@@ -1,0 +1,42 @@
+<div class="container">
+  <h1>Northwind Customers</h1>
+
+  <div class="search-bar">
+    <input
+      type="text"
+      placeholder="Search by company name..."
+      [ngModel]="nameFilter()"
+      (ngModelChange)="nameFilter.set($event)"
+    />
+    <button (click)="loadCustomers()">Search</button>
+  </div>
+
+  @if (loading()) {
+    <p class="status">Loading...</p>
+  } @else if (error()) {
+    <p class="error">{{ error() }}</p>
+  } @else if (customers().length === 0) {
+    <p class="status">No customers found.</p>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>Company Name</th>
+          <th>Customer ID</th>
+          <th>Orders</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (customer of customers(); track customer.customerId) {
+          <tr>
+            <td>{{ customer.companyName }}</td>
+            <td>{{ customer.customerId }}</td>
+            <td>{{ customer.orderCount }}</td>
+            <td><button class="link-btn" (click)="viewDetail(customer.customerId)">View</button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

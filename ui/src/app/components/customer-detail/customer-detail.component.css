@@ -1,0 +1,29 @@
+.back-btn {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  margin-bottom: 16px;
+}
+
+.back-btn:hover {
+  text-decoration: underline;
+}
+
+.customer-header {
+  margin-bottom: 24px;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 4px 16px;
+  margin: 8px 0;
+}
+
+dt {
+  font-weight: 600;
+  color: #555;
+}
