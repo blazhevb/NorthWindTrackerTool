@@ -1,6 +1,6 @@
-using NorthWindTracker.Application.DTOs;
 using NorthWindTracker.Application.Interfaces;
 using NorthWindTracker.Application.Services;
+using NorthWindTracker.Domain;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -22,16 +22,20 @@ public class CustomerServiceTests
     [Test]
     public async Task GetAllAsync_ReturnsAllCustomers_WhenNoFilterProvided()
     {
-        var expected = new List<CustomerSummaryDto>
+        var customers = new List<Customer>
         {
-            new("ALFKI", "Alfreds Futterkiste", 6),
-            new("ANATR", "Ana Trujillo Emparedados", 4)
+            new() { CustomerId = "ALFKI", CompanyName = "Alfreds Futterkiste", Orders = [new() { OrderId = 1 }, new() { OrderId = 2 }] },
+            new() { CustomerId = "ANATR", CompanyName = "Ana Trujillo Emparedados", Orders = [new() { OrderId = 3 }] }
         };
-        _repository.GetAllAsync(null).Returns(expected);
+        _repository.GetAllAsync(null).Returns(customers);
 
-        var result = await _sut.GetAllAsync(null);
+        var result = (await _sut.GetAllAsync(null)).ToList();
 
-        Assert.That(result, Is.EqualTo(expected));
+        Assert.That(result, Has.Count.EqualTo(2));
+        Assert.That(result[0].CustomerId, Is.EqualTo("ALFKI"));
+        Assert.That(result[0].OrderCount, Is.EqualTo(2));
+        Assert.That(result[1].CustomerId, Is.EqualTo("ANATR"));
+        Assert.That(result[1].OrderCount, Is.EqualTo(1));
     }
 
     [Test]
@@ -45,24 +49,43 @@ public class CustomerServiceTests
     }
 
     [Test]
-    public async Task GetByIdAsync_ReturnsCustomerDetail_WhenCustomerExists()
+    public async Task GetByIdAsync_ReturnsCorrectOrderTotals_WhenCustomerExists()
     {
-        var orders = new List<OrderSummaryDto>
+        var customer = new Customer
         {
-            new(10643, new DateTime(1997, 8, 25), 814.50m, 3)
+            CustomerId = "ALFKI",
+            CompanyName = "Alfreds Futterkiste",
+            ContactName = "Maria Anders",
+            City = "Berlin",
+            Country = "Germany",
+            Orders =
+            [
+                new Order
+                {
+                    OrderId = 10643,
+                    OrderDate = new DateTime(1997, 8, 25),
+                    OrderDetails =
+                    [
+                        new OrderDetail { ProductId = 1, UnitPrice = 10m, Quantity = 2, Discount = 0f },
+                        new OrderDetail { ProductId = 2, UnitPrice = 5m, Quantity = 4, Discount = 0.1f }
+                    ]
+                }
+            ]
         };
-        var expected = new CustomerDetailDto("ALFKI", "Alfreds Futterkiste", "Maria Anders", "Berlin", "Germany", orders);
-        _repository.GetByIdAsync("ALFKI").Returns(expected);
+        _repository.GetByIdAsync("ALFKI").Returns(customer);
 
         var result = await _sut.GetByIdAsync("ALFKI");
 
-        Assert.That(result, Is.EqualTo(expected));
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Orders.First().OrderId, Is.EqualTo(10643));
+        Assert.That(result.Orders.First().ProductCount, Is.EqualTo(2));
+        Assert.That(result.Orders.First().TotalValue, Is.EqualTo(10m * 2 + 5m * 4 * (decimal)(1 - 0.1f)).Within(0.001m));
     }
 
     [Test]
     public async Task GetByIdAsync_ReturnsNull_WhenCustomerDoesNotExist()
     {
-        _repository.GetByIdAsync("XXXXX").Returns((CustomerDetailDto?)null);
+        _repository.GetByIdAsync("XXXXX").Returns((Customer?)null);
 
         var result = await _sut.GetByIdAsync("XXXXX");
 
