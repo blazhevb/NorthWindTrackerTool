@@ -1,43 +1,42 @@
 using Microsoft.EntityFrameworkCore;
-using NorthWindTracker.Application.DTOs;
+using Microsoft.Extensions.Logging;
 using NorthWindTracker.Application.Interfaces;
+using NorthWindTracker.Domain;
 
 namespace NorthWindTracker.Infrastructure.Data;
 
-public class CustomerRepository(NorthwindDbContext context) : ICustomerRepository
+public class CustomerRepository(NorthwindDbContext context, ILogger<CustomerRepository> logger) : ICustomerRepository
 {
-    public async Task<IEnumerable<CustomerSummaryDto>> GetAllAsync(string? nameFilter)
+    public async Task<IEnumerable<Customer>> GetAllAsync(string? nameFilter)
     {
-        var query = context.Customers.AsNoTracking();
+        logger.LogInformation("Fetching customers with filter: {Filter}", nameFilter ?? "none");
 
-        if (!string.IsNullOrWhiteSpace(nameFilter))
-            query = query.Where(c => c.CompanyName.Contains(nameFilter));
+        var query = context.Customers
+            .AsNoTracking()
+            .Include(c => c.Orders);
 
-        return await query
-            .Select(c => new CustomerSummaryDto(
-                c.CustomerId,
-                c.CompanyName,
-                c.Orders.Count()))
-            .ToListAsync();
+        var result = string.IsNullOrWhiteSpace(nameFilter)
+            ? await query.ToListAsync()
+            : await query.Where(c => c.CompanyName.Contains(nameFilter)).ToListAsync();
+
+        logger.LogInformation("Fetched {Count} customers", result.Count);
+        return result;
     }
 
-    public async Task<CustomerDetailDto?> GetByIdAsync(string customerId)
+    public async Task<Customer?> GetByIdAsync(string customerId)
     {
-        return await context.Customers
+        logger.LogInformation("Fetching customer {CustomerId}", customerId);
+
+        var customer = await context.Customers
             .AsNoTracking()
-            .Where(c => c.CustomerId == customerId)
-            .Select(c => new CustomerDetailDto(
-                c.CustomerId,
-                c.CompanyName,
-                c.ContactName,
-                c.City,
-                c.Country,
-                c.Orders.Select(o => new OrderSummaryDto(
-                    o.OrderId,
-                    o.OrderDate,
-                    o.OrderDetails.Sum(od => (decimal)(od.UnitPrice * od.Quantity * (decimal)(1 - od.Discount))),
-                    o.OrderDetails.Select(od => od.ProductId).Distinct().Count()
-                ))))
-            .FirstOrDefaultAsync();
+            .Include(c => c.Orders)
+                .ThenInclude(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+            .FirstOrDefaultAsync(c => c.CustomerId == customerId);
+
+        if (customer is null)
+            logger.LogWarning("Customer {CustomerId} not found", customerId);
+
+        return customer;
     }
 }
