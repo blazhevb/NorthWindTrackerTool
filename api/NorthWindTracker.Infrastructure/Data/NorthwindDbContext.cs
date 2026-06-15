@@ -23,7 +23,7 @@ public class NorthwindDbContext(DbContextOptions<NorthwindDbContext> options) : 
             e.Property(c => c.Country).HasColumnName("Country");
             e.HasMany(c => c.Orders)
              .WithOne()
-             .HasForeignKey("CustomerID");
+             .HasForeignKey(o => o.CustomerId);
         });
 
         modelBuilder.Entity<Order>(e =>
@@ -31,10 +31,11 @@ public class NorthwindDbContext(DbContextOptions<NorthwindDbContext> options) : 
             e.ToTable("Orders");
             e.HasKey(o => o.OrderId);
             e.Property(o => o.OrderId).HasColumnName("OrderID");
+            e.Property(o => o.CustomerId).HasColumnName("CustomerID").HasMaxLength(5);
             e.Property(o => o.OrderDate).HasColumnName("OrderDate");
             e.HasMany(o => o.OrderDetails)
              .WithOne()
-             .HasForeignKey("OrderID");
+             .HasForeignKey(od => od.OrderId);
         });
 
         modelBuilder.Entity<OrderDetail>(e =>
