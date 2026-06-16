@@ -7,6 +7,7 @@ An internal staff tool to look up customers and review their order history, buil
 ## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- Visual Studio 2022 v17.13 or later (required for .NET 10 support). If VS reports the project is unsupported, update via **Help → Check for Updates**. Alternatively, run the project from the terminal with `dotnet run` without needing a VS update.
 - SQL Server or SQL Server Express (LocalDB also works — see note below)
 - [Node.js 22 LTS](https://nodejs.org) and npm
 - Angular CLI: `npm install -g @angular/cli`
